@@ -7,4 +7,5 @@ openpyxl
 datetime
 langchain_community
 requests
+sqlite3 >= 3.35.0
 crewai
