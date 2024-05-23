@@ -83,7 +83,7 @@ def main():
 
     with st.sidebar:
         st.image(logo)
-        st.title("Jira Validator- Saumya")
+        st.title("Jira Validator")
         st.subheader("Using Sheet Uploader")
         uploader_button = st.button("Open File Uploader Interface")
         st.subheader("Using Jira API")
