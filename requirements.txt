@@ -1,0 +1,9 @@
+streamlit
+langchain
+langchain_openai
+pandas
+python-dotenv
+openpyxl
+datetime
+langchain_community
+requests
