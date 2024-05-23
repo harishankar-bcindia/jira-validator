@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
-from crewAI.src.crewai import Crew, Agent, Task, Process
+# from crewAI.src.crewai import Crew, Agent, Task, Process
+from crewai import Crew, Agent, Task, Process
+
 import os
 from dotenv import load_dotenv
 load_dotenv()

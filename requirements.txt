@@ -7,3 +7,4 @@ openpyxl
 datetime
 langchain_community
 requests
+crewai
