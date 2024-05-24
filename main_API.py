@@ -14,7 +14,7 @@ from openai import AzureOpenAI, AsyncOpenAI
 from langchain_openai import ChatOpenAI
 import datetime
 from langchain_community.document_loaders import PyPDFLoader
- 
+
 import warnings
 
 import logging
@@ -34,11 +34,11 @@ def handling_gpt_ouput(gpt_response):
             return parsed_variable
     except (ValueError, SyntaxError):
         pass
- 
+
     # Extract content between first and last curly braces
     start_index = gpt_response.find('{')
     end_index = gpt_response.rfind('}')
- 
+
     if start_index != -1 and end_index != -1:
         extracted_content = gpt_response[start_index:end_index + 1]
         logging.info(f'Extracted GPT response as JSON in string format: {extracted_content}')
@@ -54,7 +54,7 @@ def crew_agent(ticket_detail):    #ticket detail is the df of each row.
     llm = ChatOpenAI(model="gpt-4-1106-preview",api_key=os.getenv("OPENAI_API_KEY"))
 
     ticket_dict = ticket_detail.to_dict(orient="records")
-    
+
     output_json = [
                     {
                         "is_summary_meaningful" : "Yes or No",
@@ -74,12 +74,12 @@ def crew_agent(ticket_detail):    #ticket detail is the df of each row.
                         "is_story_points_meaningful" : "Yes or No",
                         "expected_story_points" : "",
                         "your_reason" : "Your reason, why you selected Yes or No",
-                        
+
                     },
                     {
                         "ticket_type" : "Bug or Issue or Feature",
                         "your_reason" : "Your reason, why you selected any one from Bug/Issue/Feature"
-                    
+
                     },
                     {
                         "is_label_present" : "Yes or No"
@@ -96,23 +96,23 @@ def crew_agent(ticket_detail):    #ticket detail is the df of each row.
                 Overall Raw Json to fill is: {output_json} \n\
                 Ticket details are : {ticket_dict} .
                 Analyse above ticket details, But before filling raw json you have to analyze below things carefully in ticket and do not write any comment in your output and return only filled raw json, do not delete or add any extra key:
-                
-                            Instruction 1: Analyze ticket summary and complete this part based on the conditions provided {output_json[0]}, 
+
+                            Instruction 1: Analyze ticket summary and complete this part based on the conditions provided {output_json[0]},
                                If ticket summary is meaningful, short yet descriptive, if yes then fill Yes else No in this key ->is_summary_meaningful.
                                 If ticket summary aligned with the description, whether the summary and description combined makes sense then is it meaningful, if yes then fill Yes else No in this key ->  is_summary_with_description_meaningful.
                                 If ticket summary aligned with the issue type it belongs to, whether the summary is aligned with the type of issue it is, then is it meaningful, if yes then fill Yes else No in this key ->  is_summary_with_issuetype_meaningful.
                                 And in key -> your_reason, provide the reason to select the above values.
                                 And do not add any comment like //.
-                                
-                            Instruction 2: Analyze ticket description and complete this part based on the conditions provided {output_json[1]}, 
+
+                            Instruction 2: Analyze ticket description and complete this part based on the conditions provided {output_json[1]},
                                 If ticket has desciption or not then fill Yes or No in this key -> is_description_present.
                                 If ticket has description then is it meaningful and totally describe the issue in a proper way which can be understood by any team members. The description should be that clear that anyone could understand what needs to be done. Is it if yes then fill Yes else No in this key ->  is_description_meaningful.
                                 If ticket description contains the acceptance criteria, if yes then fill Yes else No in this key ->has_acceptance_criteria.
                                 If ticket is not meaningful and does not have acceptance criteria, then based on the ticket summary generate a new description for that ticket and if acceptance criteria can be generated then generate it in Even,When and Then format. Only when the description is meaninful and has an acceptance criteria, only then the new description should not be generated. In key -> new_description
                                 In key -> your_reason, provide the reason to select the above values.
                                 And do not add any comment like //.
-                                
-                            Instruction 3: Analyze ticket story points and complete this part based on the conditions provided {output_json[2]}, 
+
+                            Instruction 3: Analyze ticket story points and complete this part based on the conditions provided {output_json[2]},
                                 If ticket has story points values or not then fill Yes or No in this key -> is_story_points_present.
                                 If ticket has story points then are these story points justifiable to the actual efforts required to properly complete the task based on summary,description and the issue type it belongs to given that 1 story is equivalent to 1 day of effort,
                                 You should understand that the complexity is highest to lowest for the following issue types:
@@ -126,10 +126,10 @@ def crew_agent(ticket_detail):    #ticket detail is the df of each row.
                                 And in key -> expected_story_points, provide and calculate your expected story points based on the title,description and the type of issue it belongs to, to be required to complete the task if the resource allocated to complete that task is a mid-level resource. The expected story points should be in number i.e 1,2 etc. Make sure you don't miss providing expected story points. And it should be justifiable. If summary and description are present and meaningful then use that to estimate the compexity and the calculate the estimated story points. If not then use the new description generated above as the basis to understand the complexity that ticket must have based on the issue type it belongs to and then estimate the expected story points.
                                 Make sure the expected story points are assigned only in numbers. Critically examine and estimate the story points.
                                 1 story points is equivalent to 8 hours of human effort, if some task just needs few hours, the expected story points should be in multiples of 0.25 of 1 story points. Never miss to assign story points.
-                                And in key -> your_reason, provide the reason to select above values. 
+                                And in key -> your_reason, provide the reason to select above values.
                                 And do not add any comment like //.
-                                
-                            Instruction 4: Analyze overall ticket, mainly the title and the decription, and complete this part based on the conditions provided {output_json[3]}, 
+
+                            Instruction 4: Analyze overall ticket, mainly the title and the decription, and complete this part based on the conditions provided {output_json[3]},
                                 According to your overall analysis what should be the category of ticket: Bug or Feature or Other. You should refer to the below definition:
                                 Bug: A flaw or defect in the software that causes it to behave unexpectedly or not as intended.
                                 Feature: A new functionality or capability added to the software to enhance its usability or meet user requirements.
@@ -139,22 +139,22 @@ def crew_agent(ticket_detail):    #ticket detail is the df of each row.
                                 and fill any one in this key -> ticket_type
                                 And in key -> your_reason, provide the reason to select above value.
                                 And do not add any comment like //.
-                                
+
                             Instruction 5: Analyze ticket labels and complete this part based on conditions provided {output_json[4]},
                                 If ticket has labels present or not then fill Yes or No in this key -> is_label_present.
                                 And do not add any comment like //.
-                                
+
                             Instruction 6: Analyze ticket component and complete this part based on conditions provided {output_json[5]},
                                 If ticket has components present or not then fill Yes or No in this key -> is_component_present.
                                 And do not add any comment like //.
-                                
+
                             Instruction 7: Analyze ticket Epic Link Summary and complete this part based on the conditions provided{output_json[6]},
                                 If Epic link summary is present then mark Yes, if it is not present then mark No in this key -> is_epic_present".
                                 And do not add any comment like //.
-                                
+
                             Instruction 8: After overall analysis and filling of values to the corresponding keys now return complete filled json but do not delete any key of json even if it is empty.Do not Mention anything with HTML Tags markdown. And do not add any comment like //.
-                            
-                            
+
+
                 '''
     # expected_output = f"Output should be only in this format after filling all appropriate details {output_json}"
     expected_output = 'Return only filled raw JSON as output key like this-> {"output" : filled_json}'
@@ -171,18 +171,18 @@ def crew_agent(ticket_detail):    #ticket detail is the df of each row.
                     description=f"{task_description}",
                     expected_output=expected_output,
                     agent=Title_validator,
-                    
+
                     )
     crew = Crew(
+        agents=[Title_validator],
         tasks=[task_a],
-        process=Process.sequential,
-        return_intermediate_steps=True,
-        allow_delegation=True,
+        verbose=1,
         )
 
     result = crew.kickoff()
-    print("crew_output ",result)
+    print({"crew_output ":result})
     output = handling_gpt_ouput(result)
+    print({"handled_gpt_output":output})
     return output[0]["output"]
 
 
@@ -190,28 +190,28 @@ def generate_url(ticket_id):
     print(ticket_id)
     base_url = 'https://blenheimchalcot.atlassian.net/browse/'
     return base_url+str(ticket_id)
-                    
+
 def append_row(dataframe,values,ticket_id,ticket_summary,ticket_description,ticket_story_points,ticket_type,labels,components,epic_link):
     values_dict = values
     print(ticket_description)
     data_to_append = {
-                        'Ticket Id': str(ticket_id), 
-                        'Summary Original': str(ticket_summary), 
+                        'Ticket Id': str(ticket_id),
+                        'Summary Original': str(ticket_summary),
                         'Summary Meaningful': str(values[0]["is_summary_meaningful"]),
                         'Summary & Description Aligned': str(values[0]["is_summary_with_description_meaningful"]),
                         'Summary & Issue Type Aligned': str(values[0]["is_summary_with_issuetype_meaningful"]),
                         'Summary Comment': str(values[0]["your_reason"]),
                         'Description Original': str(ticket_description),
-                        'Description Present': str(values[1]["is_description_present"]), 
+                        'Description Present': str(values[1]["is_description_present"]),
                         'Description Meaningful': str(values[1]["is_description_meaningful"]),
                         'Description-Acceptance criteria': str(values[1]["has_acceptance_criteria"]),
                         'New Description':str(values[1]["new_description"]),
                         'Description Comment': str(values[1]["your_reason"]),
                         'Story Points Original': str(ticket_story_points),
-                        'Story Points Present': str(values[2]["is_story_points_present"]), 
+                        'Story Points Present': str(values[2]["is_story_points_present"]),
                         'Story Points Meaningful': str(values[2]["is_story_points_meaningful"]),
                         'Expected Story Points': str(values[2]["expected_story_points"]),
-                        'Story Points Comment': str(values[2]["your_reason"]),  
+                        'Story Points Comment': str(values[2]["your_reason"]),
                         'Ticket Type Original':str(ticket_type),
                         'Ticket Type': str(values[3]["ticket_type"]),
                         'Ticket Comment': str(values[3]["your_reason"]),
@@ -221,9 +221,9 @@ def append_row(dataframe,values,ticket_id,ticket_summary,ticket_description,tick
                         'Components Present' : str(values[5]["is_component_present"]),
                         'Epic Summary' : str(epic_link),
                         'Epic Summary Present': str(values[6]["is_epic_present"])
-                        
+
                     }
-    
+
     df = dataframe._append(data_to_append, ignore_index=True)
     print(df)
     return df
@@ -237,7 +237,7 @@ def extract_url(html_str):
 
 def call_crew_api(df):
 
-    
+
     # df = kwargs["dataframe"]
     # agents_dict = kwargs["agents_list"]
     tasks_list = []
@@ -254,12 +254,12 @@ def call_crew_api(df):
     #         elif key == "ticket_type":
     #             tasks_list.append(key)
     #         elif key == "labels":
-    #             tasks_list.append(key)  
+    #             tasks_list.append(key)
     #         elif key == "components":
-    #             tasks_list.append(key)  
+    #             tasks_list.append(key)
     #         elif key == "":
-    #             task_loist.append(key)         
-                
+    #             task_loist.append(key)
+
     for index, row in df.iterrows():
         try:
             row_df = pd.DataFrame([row]) #creating a dataframe of single row so that each row can be given as input to GPT for futher processing.
@@ -272,17 +272,17 @@ def call_crew_api(df):
             labels = row_df["Labels"][index]
             components = row_df["Components"][index]
             epic_link = row_df["Epic Link Summary"][index]
-            
-            
+
+
             result = crew_agent(mini_df)
         # st.write(result)
             output_df = append_row(output_df,result,ticket_id,ticket_summary,ticket_description,ticket_story_points,ticket_type,labels,components,epic_link)
             output_df['ticket_url'] = output_df['Ticket Id'].apply(generate_url)
-            
+
             output_df.insert(1, 'ticket_url', output_df.pop('ticket_url'))
         except Exception as err:
             result = [
-                
+
                                     {
                         "is_summary_meaningful" : "Error in validating",
                         "is_summary_with_description_meaningful" : "Error in validating",
@@ -301,12 +301,12 @@ def call_crew_api(df):
                         "is_story_points_meaningful" : "Error in validating",
                         "expected_story_points" :"Error in validating",
                         "your_reason" : "Error in validating",
-                        
+
                     },
                     {
                         "ticket_type" : "Error in validating",
                         "your_reason" : "Error in validating",
-                    
+
                     },
                     {
                         "is_label_present" : "Error in validating",
@@ -317,17 +317,17 @@ def call_crew_api(df):
                     {
                         "is_epic_present" :"Error in validating",
                     }
-                    
+
                     ]
             output_df = append_row(output_df,result,ticket_id,ticket_summary,ticket_description,ticket_story_points,ticket_type,labels,components,epic_link)
-            
+
             output_df['ticket_url'] = output_df['Ticket Id'].apply(generate_url)
-            
+
             output_df.insert(1, 'ticket_url', output_df.pop('ticket_url'))
             print('Got error: ',err)
-        
-   
+
+
     # output_df.to_excel('Output.xlsx',index=False
     output_df_list_api.append(output_df.to_dict(orient="records")[0])
-    
+
     # return output_df

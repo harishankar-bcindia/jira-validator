@@ -126,7 +126,7 @@ def main():
 
                         with st.spinner('Loading...'):
                                 df=df.replace('#','',regex=True)
-                                df_new_2 = df.head(10)
+                                df_new_2 = df.head(1)
                                 mini_df_list = []
                                 #creates chunks_df of the whole df and store it in the list.
                                 chunk_size = 10
