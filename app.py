@@ -6,13 +6,13 @@ from main import call_crew
 import csv
 import base64
 from main import output_df_list
-from main_API import output_df_list_api 
+from main_API import output_df_list_api
 from threading import Thread
 import time
 
 
-#create a task of 10 threads 
-#start that task 
+#create a task of 10 threads
+#start that task
 #wait for the responses of that task
 
 
@@ -28,7 +28,7 @@ if "buttons" not in st.session_state :
 
 if "default" not in st.session_state :
     st.session_state.default = True
-    
+
 if "crew" not in st.session_state :
     st.session_state.crew = False
 
@@ -43,18 +43,18 @@ if "output1_new" not in st.session_state :
 
 def excel_download1(df):
     csv_string1 = df.to_csv(index=False)
-    csv_bytes1 = csv_string1.encode()    
+    csv_bytes1 = csv_string1.encode()
     return csv_bytes1
 
 def excel_download(df):
     # csv_string1 = df.to_csv(index=False)
     # csv_bytes1 = csv_string1.encode()
-    
-    
+
+
     csv_file = df.to_csv(index=False)
     b64 = base64.b64encode(csv_file.encode()).decode()  # Encodes the CSV file as base64
     href = f'<a href="data:file/csv;base64,{b64}" download="data.csv">Download Validator''s Output</a>'  # Creates download link
-    
+
     return href
 
 
@@ -69,7 +69,7 @@ def create_matrix(row):
 
 def main():
     logo = "image.webp"  # Adjust path to your logo image
- 
+
     st.sidebar.markdown(
         """
         <style>
@@ -133,15 +133,15 @@ def main():
                                 for i in range(0, len(df_new_2), chunk_size):
                                     subset = df_new_2.iloc[i:i+chunk_size]
                                     mini_df_list.append(subset)
-                                
-                                #iterate each chunk df from mini_df_list   
+
+                                #iterate each chunk df from mini_df_list
                                 for sub_df in mini_df_list:
                                     threads_list = []
                                 # Creating and storing threads for each row of chunk df in thread_list
                                     for index, row in sub_df.iterrows():
                                         single_row_df = pd.DataFrame([row])
                                         threads_list.append(Thread(target=call_crew, args=(single_row_df,)))
-                                 #executing each thread of chunk df        
+                                 #executing each thread of chunk df
                                     for thread in threads_list:
                                         thread.start()
                                     for thread in threads_list:
@@ -149,18 +149,18 @@ def main():
                                 #storing each of the output from each chunk in a temp df - output_df_list, and finally converting it into dict and downloading it.
                                 output = pd.DataFrame.from_records(output_df_list)
 
-                                
+
                                 # output = call_crew(dataframe = df.head(2),agents_list = [])
                                 st.session_state.output1 = output
                                 view = output.style.hide(axis="index")
                                 view.set_table_styles([
                                             {'selector': "th", 'props': [("font-weight", "bold"), ("text-transform", "capitalize")]},{'selector': "td", 'props': [("font-size", "15px"),("vertical-align","top"),('text-align', 'left'), ("text-transform", "capitalize")]}
                                         ])
-                                
+
                                 columns_to_drop = [0, 1,7,11,12,13,16,17,18,19,20]
-                                
+
                                 df_new = output.drop(output.columns[columns_to_drop], axis=1)
-                                
+
                                 st.session_state.output1_new = df_new
                                 print("df_new",df_new)
                                 st.markdown(excel_download(st.session_state.output1_new), unsafe_allow_html=True)
@@ -177,37 +177,37 @@ def main():
                                     st.session_state.table = view
                                     st.markdown(st.session_state.table.to_html(),unsafe_allow_html=True)
                                 st.download_button("Download CSV",excel_download1(st.session_state.output1),"Jira Output.csv",'text/csv')
-     
+
                     except Exception as e:
                             st.error(f"Error: {e}")
                 else:
                     st.warning("Please upload a file.")
-        
-    
+
+
     if st.session_state.jira_api:
         st.title("Using Jira API")
-        project_name = st.text_input("Enter your Project Name")        
-        if project_name:    
-            
+        project_name = st.text_input("Enter your Project Name")
+        if project_name:
+
                 if st.button("Execute Crew"):
                     with st.spinner('Loading...'):
                         jira_dataframe = jira_data(project_name)
                         print("DATAFRAME Shape is: ",jira_dataframe.shape)
                         # print("JIRA API data is ABove")
-                        
+
                         df_new_api = jira_dataframe.head(5)
                         mini_df_list = []
                         chunk_size = 5
                         for i in range(0, len(df_new_api), chunk_size):
                             subset = df_new_api.iloc[i:i+chunk_size]
                             mini_df_list.append(subset)
-                            
+
                         for sub_df in mini_df_list:
                             threads_list = []
                             for index, row in sub_df.iterrows():
                                 single_row_df = pd.DataFrame([row])
-                                
-                                
+
+
                                 thread_1 = Thread(target=call_crew_api, args=(single_row_df,))
                                 threads_list.append(thread_1)
                             for thread in threads_list:
@@ -218,20 +218,20 @@ def main():
                         output1 = pd.DataFrame.from_records(output_df_list_api)
                         # print("Harishanakr")
                         # print(output1)
-                    
-                        
-                        
+
+
+
                         # output1 = call_crew_api(dataframe = jira_dataframe.head(1),agents_list = [])
                         view = output1.style.hide(axis="index")
                         view.set_table_styles([
                                     {'selector': "th", 'props': [("font-weight", "bold"), ("text-transform", "capitalize")]},{'selector': "td", 'props': [("font-size", "15px"),("vertical-align","top"),('text-align', 'left'), ("text-transform", "capitalize")]}
                                 ])
-                        
+
                         columns_to_drop = [0, 1,7,11,12,13,16,17,18,19,20]
                         df_new = output1.drop(output1.columns[columns_to_drop], axis=1)
                         st.session_state.output1_new = df_new
                         st.markdown(excel_download(st.session_state.output1_new), unsafe_allow_html=True)
-                        
+
                         for index,row in output1.iterrows():
                             row_data = create_matrix(row)
                             st.subheader(row['Summary Original'])
@@ -243,13 +243,13 @@ def main():
                             # st.table(row_data)
                             st.markdown(view1.to_html(),unsafe_allow_html=True)
                         st.download_button("Download CSV",excel_download1(output1),"Jira Output.csv",'text/csv')
-            
-            
-            
+
+
+
     if st.session_state.default:
         st.title("Welcome to JIRA Validator")
         st.subheader("This is a web application to validate the Jira tickets.")
-             
+
 if __name__ == "__main__":
     st.set_page_config(layout="wide")
     with open("style.css") as source_des:
